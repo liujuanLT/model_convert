@@ -121,7 +121,7 @@ class ModelConvertor(object):
         onnx_model_path,
         engine_path,
         explicit_batch=True,
-        presicion='int8',
+        precision='int8',
         max_calibration_size=300,
         calibration_batch_size=32,
         calibration_data=None,
@@ -130,7 +130,7 @@ class ModelConvertor(object):
         if not isinstance(dummy_input, torch.Tensor):
             print("error: dummy_input must be type of torch.Tensor")
             return None
-        if presicion not in ['int8', 'fp32', 'fp16']:
+        if precision not in ['int8', 'fp32', 'fp16']:
             print("error: precision must be int8, fp32 or fp16")
             return None
 
@@ -141,11 +141,11 @@ class ModelConvertor(object):
             pytorch_to_onnx(model, dummy_input, onnx_model_path, verbose=True)
 
         # conver onnx model to tensorrt engine
-        if presicion == 'int8':
+        if precision == 'int8':
             onnx_to_tensorrt(onnx_model_path, \
                 output=engine_path, \
-                int8=(True if presicion=='int8' else False), \
-                fp16=(True if presicion=='fp16' else False), \
+                int8=(True if precision=='int8' else False), \
+                fp16=(True if precision=='fp16' else False), \
                 max_calibration_size=max_calibration_size, \
                 calibration_batch_size=calibration_batch_size, \
                 calibration_data=calibration_data, \
@@ -154,8 +154,8 @@ class ModelConvertor(object):
         else:
             onnx_to_tensorrt(onnx_model_path, \
             output=engine_path, \
-            int8=(True if presicion=='int8' else False), \
-            fp16=(True if presicion=='fp16' else False), \
+            int8=(True if precision=='int8' else False), \
+            fp16=(True if precision=='fp16' else False), \
             explicit_batch=explicit_batch)         
                     
         self.engine_path = engine_path
@@ -219,7 +219,7 @@ def main():
             onnx_model_path=os.path.join(dir_path, "data/models/{}_int8_bsize{}.onnx".format(saved_modelname, bsize)),
             engine_path=os.path.join(dir_path, "data/models/{}_int8_bsize{}.trt".format(saved_modelname, bsize)),
             explicit_batch=True,
-            presicion='int8',
+            precision='int8',
             max_calibration_size=300,
             calibration_batch_size=32,
             calibration_data=os.path.join(dir_path, "data/images/imagenet100"),
