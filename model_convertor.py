@@ -18,7 +18,7 @@ def load_engine(filename: str):
         return runtime.deserialize_cuda_engine(f.read())
 
 def pytorch_to_onnx(pytorch_model, dummy_input, onnx_model, verbose=True):
-    torch.onnx.export(pytorch_model, dummy_input, onnx_model, verbose=verbose)
+    torch.onnx.export(pytorch_model, dummy_input, onnx_model, verbose=verbose, opset_version=11)
 
 def get_binding_idxs(engine: trt.ICudaEngine, prof_idx: int):
     # Calculate start/end binding indices for current context's profile
@@ -127,8 +127,8 @@ class ModelConvertor(object):
         calibration_data=None,
         preprocess_func='preprocess_imagenet' # TODO, select automatic
         ):
-        if not isinstance(dummy_input, torch.Tensor):
-            print("error: dummy_input must be type of torch.Tensor")
+        if not ( (isinstance(dummy_input, torch.Tensor) and len(dummy_input.shape)==4) or isinstance(dummy_input, List) ):
+            print("error: dummy_input must be torch.Tensor of [bsize, c, w, h] or list of torch.Tensor of [c, w, h]")
             return None
         if precision not in ['int8', 'fp32', 'fp16']:
             print("error: precision must be int8, fp32 or fp16")
