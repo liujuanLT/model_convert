@@ -125,7 +125,9 @@ class ModelConvertor(object):
         max_calibration_size=300,
         calibration_batch_size=32,
         calibration_data=None,
-        preprocess_func='preprocess_imagenet' # TODO, select automatic
+        preprocess_func='preprocess_imagenet', # TODO, select automatic
+        use_cache_if_exists=False,
+        save_cache_if_exists=False,
         ):
         if not ( (isinstance(dummy_input, torch.Tensor) and len(dummy_input.shape)==4) or isinstance(dummy_input, List) ):
             print("error: dummy_input must be torch.Tensor of [bsize, c, w, h] or list of torch.Tensor of [c, w, h]")
@@ -135,7 +137,7 @@ class ModelConvertor(object):
             return None
 
         # convert model to onnx if needed
-        if isinstance(model, str) and os.path.splittext(model)[-1] == 'onnx':
+        if isinstance(model, str) and model.split('.') is not None and model.split('.')[-1] == 'onnx':
             onnx_model_path = model
         else:
             pytorch_to_onnx(model, dummy_input, onnx_model_path, verbose=True)
@@ -150,7 +152,9 @@ class ModelConvertor(object):
                 calibration_batch_size=calibration_batch_size, \
                 calibration_data=calibration_data, \
                 preprocess_func=preprocess_func, \
-                explicit_batch=explicit_batch)
+                explicit_batch=explicit_batch, \
+                use_cache_if_exists=use_cache_if_exists,
+                save_cache_if_exists=save_cache_if_exists)
         else:
             onnx_to_tensorrt(onnx_model_path, \
             output=engine_path, \

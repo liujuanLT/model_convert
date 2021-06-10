@@ -29,9 +29,9 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-def get_int8_calibrator(calib_cache, calib_data, max_calib_size, preprocess_func_name, calib_batch_size):
+def get_int8_calibrator(calib_cache, calib_data, max_calib_size, preprocess_func_name, calib_batch_size, use_cache_if_exists=True, save_cache_if_exists=True):
     # Use calibration cache if it exists
-    if os.path.exists(calib_cache):
+    if use_cache_if_exists and os.path.exists(calib_cache):
         logger.info("Skipping calibration files, using calibration cache: {:}".format(calib_cache))
         calib_files = []
     # Use calibration files from validation dataset if no cache exists
@@ -48,7 +48,9 @@ def get_int8_calibrator(calib_cache, calib_data, max_calib_size, preprocess_func
     else:
         preprocess_func = processing.preprocess_imagenet
 
-    int8_calibrator = ImagenetCalibrator(calibration_files=calib_files,
+    int8_calibrator = ImagenetCalibrator(use_cache_if_exists=use_cache_if_exists, 
+                                         save_cache_if_exists=save_cache_if_exists, 
+                                         calibration_files=calib_files,
                                          batch_size=calib_batch_size,
                                          cache_file=calib_cache,
                                          preprocess_func=preprocess_func)
@@ -110,13 +112,16 @@ class ImagenetCalibrator(trt.IInt8EntropyCalibrator2):
     """
 
     def __init__(self, calibration_files=[], batch_size=32, input_shape=(3, 224, 224),
-                 cache_file="calibration.cache", preprocess_func=None):
+                 cache_file="calibration.cache", preprocess_func=None, use_cache_if_exists=True, save_cache_if_exists=True):
         super().__init__()
         self.input_shape = input_shape
+        self.use_cache_if_exists = use_cache_if_exists
+        self.save_cache_if_exists = save_cache_if_exists
         self.cache_file = cache_file
         self.batch_size = batch_size
         self.batch = np.zeros((self.batch_size, *self.input_shape), dtype=np.float32)
         self.device_input = cuda.mem_alloc(self.batch.nbytes)
+        logger.info("use_cache_if_exists: {}, save_cache_if_exists: {}".format(use_cache_if_exists, save_cache_if_exists))
 
         self.files = calibration_files
         # Pad the list so it is a multiple of batch_size
@@ -158,12 +163,13 @@ class ImagenetCalibrator(trt.IInt8EntropyCalibrator2):
 
     def read_calibration_cache(self):
         # If there is a cache, use it instead of calibrating again. Otherwise, implicitly return None.
-        if os.path.exists(self.cache_file):
+        if self.use_cache_if_exists and os.path.exists(self.cache_file):
             with open(self.cache_file, "rb") as f:
                 logger.info("Using calibration cache to save time: {:}".format(self.cache_file))
                 return f.read()
 
     def write_calibration_cache(self, cache):
-        with open(self.cache_file, "wb") as f:
-            logger.info("Caching calibration data for future use: {:}".format(self.cache_file))
-            f.write(cache)
+        if self.save_cache_if_exists:
+            with open(self.cache_file, "wb") as f:
+                logger.info("Caching calibration data for future use: {:}".format(self.cache_file))
+                f.write(cache)

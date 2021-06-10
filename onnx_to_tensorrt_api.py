@@ -122,7 +122,9 @@ def onnx_to_tensorrt(onnx,
     calibration_batch_size=32,
     max_calibration_size=512,
     preprocess_func=None,
-    simple=False):
+    simple=False,
+    use_cache_if_exists=True,
+    save_cache_if_exists=True):
     # Adjust logging verbosity
     if verbosity is None:
         TRT_LOGGER.min_severity = trt.Logger.Severity.ERROR
@@ -205,7 +207,9 @@ def onnx_to_tensorrt(onnx,
                                                              calibration_data,
                                                              max_calibration_size,
                                                              preprocess_func,
-                                                             calibration_batch_size)
+                                                             calibration_batch_size,
+                                                             use_cache_if_exists=use_cache_if_exists,
+                                                             save_cache_if_exists=save_cache_if_exists)
 
         logger.info("Building Engine...")
         with builder.build_engine(network, config) as engine, open(output, "wb") as f:

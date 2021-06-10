@@ -7,14 +7,18 @@ import torch
 from model_convertor import ModelConvertor
 
 dir_path = os.path.split(os.path.realpath(__file__))[0]
-modelname = 'vgg16'
+modelname = 'resnet10'
 
 def load_test_model():
     model = None
     # to view all available models in torchvision, go to https://pytorch.org/vision/stable/models.html
     # Classification
-    if modelname == "resnet18":
+    if modelname == "resnet10":
+        model = '/workspace/yc/BenchTest/src/quantmodel/resnet10_model_best_batch8_int8.onnx'
+    elif modelname == "resnet18":
         model = models.resnet18(pretrained=True)
+    elif modelname == "resnet34":
+        model = models.resnet34(pretrained=True)                
     elif modelname == "alexnet":
         model = models.alexnet(pretrained=True)
     elif modelname == "squeezenet1_0":        
