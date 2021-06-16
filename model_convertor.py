@@ -8,6 +8,7 @@ import pycuda.driver as cuda
 from typing import Tuple, List
 import numpy as np
 import pycuda.autoinit
+import ctypes
 from onnx_to_tensorrt_api import onnx_to_tensorrt
 
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
@@ -90,7 +91,11 @@ class ModelConvertor(object):
         return list(self.ctxs.keys())
 
     def load_engine(self, engine_path):
+        trt.init_libnvinfer_plugins(TRT_LOGGER, '')
         engine = load_engine(engine_path)
+        if engine is None:
+            print("error when load engine {}".format(engine_path))
+            return None
         nprof = engine.num_optimization_profiles
         ctxs = {}
         iprofs = {}
@@ -128,6 +133,7 @@ class ModelConvertor(object):
         preprocess_func='preprocess_imagenet', # TODO, select automatic
         use_cache_if_exists=False,
         save_cache_if_exists=False,
+        verbosity="info" # "error" , "info" , "verbose"
         ):
         if not ( (isinstance(dummy_input, torch.Tensor) and len(dummy_input.shape)==4) or isinstance(dummy_input, List) ):
             print("error: dummy_input must be torch.Tensor of [bsize, c, w, h] or list of torch.Tensor of [c, w, h]")
@@ -154,13 +160,15 @@ class ModelConvertor(object):
                 preprocess_func=preprocess_func, \
                 explicit_batch=explicit_batch, \
                 use_cache_if_exists=use_cache_if_exists,
-                save_cache_if_exists=save_cache_if_exists)
+                save_cache_if_exists=save_cache_if_exists,
+                verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
         else:
             onnx_to_tensorrt(onnx_model_path, \
             output=engine_path, \
             int8=(True if precision=='int8' else False), \
             fp16=(True if precision=='fp16' else False), \
-            explicit_batch=explicit_batch)         
+            explicit_batch=explicit_batch,
+            verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
                     
         self.engine_path = engine_path
         # load engine

@@ -7,12 +7,15 @@ import torch
 from model_convertor import ModelConvertor
 
 dir_path = os.path.split(os.path.realpath(__file__))[0]
-modelname = 'resnet10'
+modelname = 'ssd300_vgg'
+verbosity = "info"
 
 def load_test_model():
     model = None
+    inputtype = 0
     # to view all available models in torchvision, go to https://pytorch.org/vision/stable/models.html
     # Classification
+    
     if modelname == "resnet10":
         model = '/workspace/yc/BenchTest/src/quantmodel/resnet10_model_best_batch8_int8.onnx'
     elif modelname == "resnet18":
@@ -71,6 +74,8 @@ def load_test_model():
         model = models.detection.maskrcnn_resnet50_fpn(pretrained=True)
     elif modelname == "keypointrcnn_resnet50_fpn":
         model = models.detection.keypointrcnn_resnet50_fpn(pretrained=True)
+    elif modelname == "ssd300_vgg":
+        model = os.path.join(dir_path, "data/models/ssd300_coco_640x427inshape_reshape.onnx")
     # Video classification
     elif modelname == "r3d_18":
         model = models.video.r3d_18(pretrained=True)
@@ -81,7 +86,6 @@ def load_test_model():
 
     return model
 
-
 class TestModelConvertor(unittest.TestCase):
     def test_fp32_convert_and_predict(self):
         convertor = ModelConvertor()
@@ -89,33 +93,43 @@ class TestModelConvertor(unittest.TestCase):
         model = load_test_model()
         bsize = 8
         dummy_input=torch.randn(bsize, 3, 224, 224)
-        # dummy_input = [torch.randn(3, 300, 300)]
+        if modelname == 'ssd300_vgg':
+            bsize = 1
+            dummy_input = [torch.randn(1, 3, 640, 427)]
         engine_path = convertor.load_model(
             model,
             dummy_input,
             onnx_model_path=os.path.join(dir_path, "data/models/{}_fp32_bsize{}.onnx".format(modelname, bsize)),
             engine_path=os.path.join(dir_path, "data/models/{}_fp32_bsize{}.trt".format(modelname, bsize)),
             explicit_batch=True,
-            precision='fp32'
+            precision='fp32',
+            verbosity=verbosity
         )
 
         # predict
         for i in range(0, 10):
             print("batch {}".format(i))
             batch_in = np.random.random((bsize, 3, 224, 224)).astype(np.float32)
+            if modelname == 'ssd300_vgg':
+                batch_in = np.random.random((1, 3, 640, 427)).astype(np.float32)
             out = convertor.predict(batch_in)
 
     def test_fp32_predict(self):
         convertor = ModelConvertor()
         # load engine
         bsize = 8
+        if modelname == 'ssd300_vgg':
+            bsize = 1
         bsizes = convertor.load_engine(os.path.join(dir_path, "data/models/{}_fp32_bsize{}.trt".format(modelname, bsize)))
+        self.assertIsNotNone(bsizes)
         self.assertEqual(bsizes, [bsize])
         # predict
         nbatch = 1000
         for i in range(0, nbatch):
             print("batch {}".format(i))
             batch_in = np.random.random((bsize, 3, 224, 224)).astype(np.float32)
+            if modelname == 'ssd300_vgg':
+                batch_in = np.random.random((1, 3, 640, 427)).astype(np.float32)
             out = convertor.predict(batch_in)
 
     def test_fp16_convert_and_predict(self):
@@ -124,32 +138,43 @@ class TestModelConvertor(unittest.TestCase):
         model = load_test_model()
         bsize = 8
         dummy_input=torch.randn(bsize, 3, 224, 224)
+        if modelname == 'ssd300_vgg':
+            bsize = 1
+            dummy_input = [torch.randn(1, 3, 640, 427)]
         engine_path = convertor.load_model(
             model,
             dummy_input,
             onnx_model_path=os.path.join(dir_path, "data/models/{}_fp16_bsize{}.onnx".format(modelname, bsize)),
             engine_path=os.path.join(dir_path, "data/models/{}_fp16_bsize{}.trt".format(modelname, bsize)),
             explicit_batch=True,
-            precision='fp16'
+            precision='fp16',
+            verbosity=verbosity
         )
    
         # predict
         for i in range(0, 10):
             print("batch {}".format(i))
             batch_in = np.random.random((bsize, 3, 224, 224)).astype(np.float32)
+            if modelname == 'ssd300_vgg':
+                batch_in = np.random.random((1, 3, 640, 427)).astype(np.float32)
             out = convertor.predict(batch_in)
 
     def test_fp16_predict(self):
         convertor = ModelConvertor()
         # load engine
         bsize = 8
+        if modelname == 'ssd300_vgg':
+            bsize = 1
         bsizes = convertor.load_engine(os.path.join(dir_path, "data/models/{}_fp16_bsize{}.trt".format(modelname, bsize)))
+        self.assertIsNotNone(bsizes)
         self.assertEqual(bsizes, [bsize])
         # predict
         nbatch = 1000
         for i in range(0, nbatch):
             print("batch {}".format(i))
             batch_in = np.random.random((bsize, 3, 224, 224)).astype(np.float32)
+            if modelname == 'ssd300_vgg':
+                batch_in = np.random.random((1, 3, 640, 427)).astype(np.float32)
             out = convertor.predict(batch_in)            
 
     def test_int8_convert_and_predict(self):
@@ -158,6 +183,9 @@ class TestModelConvertor(unittest.TestCase):
         model = load_test_model()
         bsize = 8
         dummy_input=torch.randn(bsize, 3, 224, 224)
+        if modelname == 'ssd300_vgg':
+            bsize = 1
+            dummy_input = [torch.randn(1, 3, 640, 427)]
         engine_path = convertor.load_model(
             model,
             dummy_input,
@@ -175,19 +203,26 @@ class TestModelConvertor(unittest.TestCase):
         for i in range(0, 10):
             print("batch {}".format(i))
             batch_in = np.random.random((bsize, 3, 224, 224)).astype(np.float32)
+            if modelname == 'ssd300_vgg':
+                batch_in = np.random.random((1, 3, 640, 427)).astype(np.float32)
             out = convertor.predict(batch_in)
 
     def test_int8_predict(self):
         convertor = ModelConvertor()
         # load engine
         bsize = 8
+        if modelname == 'ssd300_vgg':
+            bsize = 1
         bsizes = convertor.load_engine(os.path.join(dir_path, "data/models/{}_int8_bsize{}.trt".format(modelname, bsize)))
+        self.assertIsNotNone(bsizes)
         self.assertEqual(bsizes, [bsize])
         # predict
         nbatch = 1000
         for i in range(0, nbatch):
             print("batch {}".format(i))
             batch_in = np.random.random((bsize, 3, 224, 224)).astype(np.float32)
+            if modelname == 'ssd300_vgg':
+                batch_in = np.random.random((1, 3, 640, 427)).astype(np.float32)
             out = convertor.predict(batch_in)
 
 
