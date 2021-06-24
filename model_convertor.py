@@ -121,10 +121,10 @@ class ModelConvertor(object):
         return self.get_batchsizes()
 
     def load_model(self,
-        model, 
+        modelOrPath,  # can be pytorch model, onnx model path, trt model path
         dummy_input:torch.Tensor,
-        onnx_model_path,
-        engine_path,
+        onnx_model_path:str,
+        engine_path:str,
         explicit_batch=True,
         precision='int8',
         max_calibration_size=300,
@@ -135,52 +135,57 @@ class ModelConvertor(object):
         save_cache_if_exists=False,
         verbosity="info" # "error" , "info" , "verbose"
         ):
-        if not ( (isinstance(dummy_input, torch.Tensor) and len(dummy_input.shape)==4) or isinstance(dummy_input, List) ):
-            print("error: dummy_input must be torch.Tensor of [bsize, c, w, h] or list of torch.Tensor of [c, w, h]")
-            return None
+        
         if precision not in ['int8', 'fp32', 'fp16']:
             print("error: precision must be int8, fp32 or fp16")
             return None
 
-        # convert model to onnx if needed
-        if isinstance(model, str) and model.split('.') is not None and model.split('.')[-1] == 'onnx':
-            onnx_model_path = model
+         # trt engine path
+        if isinstance(modelOrPath, str) and len(modelOrPath.split('.'))>1 and modelOrPath.split('.')[-1] == 'trt':
+            self.engine_path = modelOrPath
         else:
-            pytorch_to_onnx(model, dummy_input, onnx_model_path, verbose=True)
-
-        # conver onnx model to tensorrt engine
-        if precision == 'int8':
-            onnx_to_tensorrt(onnx_model_path, \
+            # onnx_model_path
+            if isinstance(modelOrPath, str) and len(modelOrPath.split('.'))>1 and modelOrPath.split('.')[-1] == 'onnx':
+                onnx_model_path = modelOrPath
+            # pytorch model
+            else: 
+                if not ( (isinstance(dummy_input, torch.Tensor) and len(dummy_input.shape)==4) or isinstance(dummy_input, List) ):
+                    print("error: dummy_input must be torch.Tensor of [bsize, c, w, h] or list of torch.Tensor of [c, w, h]")
+                    return None
+                if not isinstance(onnx_model_path, str) or len(onnx_model_path.strip()) == 0:
+                    print("error: onnx_model_path must be a non-empty string")
+                pytorch_to_onnx(modelOrPath, dummy_input, onnx_model_path, verbose=True)
+        
+            # conver onnx model to tensorrt engine
+            if precision == 'int8':
+                onnx_to_tensorrt(onnx_model_path, \
+                    output=engine_path, \
+                    int8=(True if precision=='int8' else False), \
+                    fp16=(True if precision=='fp16' else False), \
+                    max_calibration_size=max_calibration_size, \
+                    calibration_batch_size=calibration_batch_size, \
+                    calibration_data=calibration_data, \
+                    preprocess_func=preprocess_func, \
+                    explicit_batch=explicit_batch, \
+                    use_cache_if_exists=use_cache_if_exists,
+                    save_cache_if_exists=save_cache_if_exists,
+                    verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
+            else:
+                onnx_to_tensorrt(onnx_model_path, \
                 output=engine_path, \
                 int8=(True if precision=='int8' else False), \
                 fp16=(True if precision=='fp16' else False), \
-                max_calibration_size=max_calibration_size, \
-                calibration_batch_size=calibration_batch_size, \
-                calibration_data=calibration_data, \
-                preprocess_func=preprocess_func, \
-                explicit_batch=explicit_batch, \
-                use_cache_if_exists=use_cache_if_exists,
-                save_cache_if_exists=save_cache_if_exists,
+                explicit_batch=explicit_batch,
                 verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
-        else:
-            onnx_to_tensorrt(onnx_model_path, \
-            output=engine_path, \
-            int8=(True if precision=='int8' else False), \
-            fp16=(True if precision=='fp16' else False), \
-            explicit_batch=explicit_batch,
-            verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
-                    
-        self.engine_path = engine_path
+                        
+            self.engine_path = engine_path
+
         # load engine
-        self.load_engine(engine_path)
+        self.load_engine(self.engine_path)
 
         return engine_path
 
     def predict(self, feed):
-        if feed.dtype != np.float32:
-            print("warn: convert to np.float32")
-            feed = feed.astype(np.float32)
-
         h_inputs = None
         if isinstance(feed, List):
             batchsize = feed[0].shape[0] # all input nodes has same batchsize
@@ -211,10 +216,9 @@ class ModelConvertor(object):
         for h, d in zip(h_outputs, d_outputs):
             cuda.memcpy_dtoh(h, d)
 
-        # View outputs
-        # print("Inference Outputs:", h_outputs)
-
         self.prev_batchsize = batchsize
+
+        return h_outputs
 
 
 def main():
