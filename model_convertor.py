@@ -20,6 +20,7 @@ def load_engine(filename: str):
 
 def pytorch_to_onnx(pytorch_model, dummy_input, onnx_model, verbose=True):
     torch.onnx.export(pytorch_model, dummy_input, onnx_model, verbose=verbose, opset_version=11)
+    print("finished to export to onnx file {}".format(onnx_model))
 
 def get_binding_idxs(engine: trt.ICudaEngine, prof_idx: int):
     # Calculate start/end binding indices for current context's profile
@@ -118,6 +119,7 @@ class ModelConvertor(object):
         self.engine = engine
         self.ctxs = ctxs
         self.iprofs = iprofs
+        print("finished to load TensorRT engine {}".format(engine_path))
         return self.get_batchsizes()
 
     def load_model(self,

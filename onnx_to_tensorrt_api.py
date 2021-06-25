@@ -215,6 +215,7 @@ def onnx_to_tensorrt(onnx,
         with builder.build_engine(network, config) as engine, open(output, "wb") as f:
             logger.info("Serializing engine to file: {:}".format(output))
             f.write(engine.serialize())
+            logger.info("finished to convert to TensorRT engine {}".format(output))
     
 
 
