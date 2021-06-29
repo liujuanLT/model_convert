@@ -158,7 +158,7 @@ def onnx_to_tensorrt(onnx,
          builder.create_builder_config() as config, \
          trt.OnnxParser(network, TRT_LOGGER) as parser:
             
-        config.max_workspace_size = 2**30 # 1GiB
+        config.max_workspace_size = 2**32 # 4GiB
 
         # Set Builder Config Flags
         for flag in builder_flag_map:
