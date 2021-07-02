@@ -67,6 +67,90 @@ def preprocess_imagenet(image, channels=3, height=224, width=224):
     return img_data
 
 
+def preprocess_coco_mmdet_ssd(image, channels=3, height=224, width=224):
+    """Pre-processing for COCO, mmdetection framework in detail
+
+    Parameters
+    ----------
+    image: PIL.Image
+        The image resulting from PIL.Image.open(filename) to preprocess
+    channels: int
+        The number of channels the image has (Usually 1 or 3)
+    height: int
+        The desired height of the image (usually 224 for Imagenet data)
+    width: int
+        The desired width of the image  (usually 224 for Imagenet data)
+
+    Returns
+    -------
+    img_data: numpy array
+        The preprocessed image data in the form of a numpy array
+
+    """
+    # Get the image in CHW format
+    resized_image = image.resize((width, height), Image.ANTIALIAS)
+    img_data = np.asarray(resized_image).astype(np.float32)
+
+    if len(img_data.shape) == 2:
+        # For images without a channel dimension, we stack
+        img_data = np.stack([img_data] * 3)
+        logger.debug("Received grayscale image. Reshaped to {:}".format(img_data.shape))
+    else:
+        img_data = img_data.transpose([2, 0, 1])
+
+    mean_vec = np.array([0.485, 0.456, 0.406])
+    stddev_vec = np.array([1., 1., 1.]) / 255.
+    assert img_data.shape[0] == channels
+
+    for i in range(img_data.shape[0]):
+        # Scale each pixel to [0, 1] and normalize per channel.
+        img_data[i, :, :] = (img_data[i, :, :] / 255 - mean_vec[i]) / stddev_vec[i]
+
+    return img_data
+
+
+def preprocess_coco_mmdet_yolov3(image, channels=3, height=224, width=224):
+    """Pre-processing for COCO, mmdetection framework in detail
+
+    Parameters
+    ----------
+    image: PIL.Image
+        The image resulting from PIL.Image.open(filename) to preprocess
+    channels: int
+        The number of channels the image has (Usually 1 or 3)
+    height: int
+        The desired height of the image (usually 224 for Imagenet data)
+    width: int
+        The desired width of the image  (usually 224 for Imagenet data)
+
+    Returns
+    -------
+    img_data: numpy array
+        The preprocessed image data in the form of a numpy array
+
+    """
+    # Get the image in CHW format
+    resized_image = image.resize((width, height), Image.ANTIALIAS)
+    img_data = np.asarray(resized_image).astype(np.float32)
+
+    if len(img_data.shape) == 2:
+        # For images without a channel dimension, we stack
+        img_data = np.stack([img_data] * 3)
+        logger.debug("Received grayscale image. Reshaped to {:}".format(img_data.shape))
+    else:
+        img_data = img_data.transpose([2, 0, 1])
+
+    mean_vec = np.array([0., 0., 0.]) / 255.
+    stddev_vec = np.array([255., 255., 255.]) / 255.
+    assert img_data.shape[0] == channels
+
+    for i in range(img_data.shape[0]):
+        # Scale each pixel to [0, 1] and normalize per channel.
+        img_data[i, :, :] = (img_data[i, :, :] / 255 - mean_vec[i]) / stddev_vec[i]
+
+    return img_data
+
+
 def preprocess_inception(image, channels=3, height=224, width=224):
     """Pre-processing for InceptionV1. Inception expects different pre-processing
     than {resnet50, vgg16, mobilenet}. This may not be totally correct,

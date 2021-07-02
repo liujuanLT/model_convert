@@ -53,7 +53,8 @@ pip3 install pycuda
 [TensorRT install path]/trtexec --onnx=test.onnx --saveEngine=test.trt --explicitBatch --verbose
 
 3. do the test and make sure no error appear
-python test_model_convertor.py
+python test_model_convertor.py  (before running, modify paths in this script)
+python test_mmdet_ssd.py (before running, modify paths in this script)
 
 4. (Optional) to test your other models, modify in load_test_model in file test_model_convertor.py
 

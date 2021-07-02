@@ -135,6 +135,7 @@ class ModelConvertor(object):
         preprocess_func='preprocess_imagenet', # TODO, select automatic
         use_cache_if_exists=False,
         save_cache_if_exists=False,
+        cali_input_shape=(224, 224),
         verbosity="info" # "error" , "info" , "verbose"
         ):
         
@@ -171,6 +172,7 @@ class ModelConvertor(object):
                     explicit_batch=explicit_batch, \
                     use_cache_if_exists=use_cache_if_exists,
                     save_cache_if_exists=save_cache_if_exists,
+                    cali_input_shape=cali_input_shape,
                     verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
             else:
                 onnx_to_tensorrt(onnx_model_path, \
@@ -178,6 +180,7 @@ class ModelConvertor(object):
                 int8=(True if precision=='int8' else False), \
                 fp16=(True if precision=='fp16' else False), \
                 explicit_batch=explicit_batch,
+                cali_input_shape=cali_input_shape,
                 verbosity=None if verbosity=="err" else (1 if verbosity =="info" else 2))
                         
             self.engine_path = engine_path

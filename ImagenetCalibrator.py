@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
-def get_int8_calibrator(calib_cache, calib_data, max_calib_size, preprocess_func_name, calib_batch_size, use_cache_if_exists=True, save_cache_if_exists=True):
+def get_int8_calibrator(calib_cache, calib_data, max_calib_size, preprocess_func_name, calib_batch_size, use_cache_if_exists=True, save_cache_if_exists=True, cali_input_shape=(224, 224)):
     # Use calibration cache if it exists
     if use_cache_if_exists and os.path.exists(calib_cache):
         logger.info("Skipping calibration files, using calibration cache: {:}".format(calib_cache))
@@ -53,7 +53,8 @@ def get_int8_calibrator(calib_cache, calib_data, max_calib_size, preprocess_func
                                          calibration_files=calib_files,
                                          batch_size=calib_batch_size,
                                          cache_file=calib_cache,
-                                         preprocess_func=preprocess_func)
+                                         preprocess_func=preprocess_func,
+                                        input_shape=(3, *cali_input_shape))
     return int8_calibrator
 
 
