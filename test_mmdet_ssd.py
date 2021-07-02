@@ -52,7 +52,7 @@ class TestModelConvertor(unittest.TestCase):
         # convert onnx model to tensorRT model
         onnx_model = "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000.onnx"
         prefix_model= os.path.split(onnx_model)[-1].split('.')[0]
-        trt_model_path = os.path.join(dir_path, "data/models/{}_int8oldcali_bsize{}.trt".format(prefix_model, bsize))
+        trt_model_path = os.path.join(dir_path, "data/models/{}_int8cali_cocoval_calisize512_n500_precoco_bsize{}.trt".format(prefix_model, bsize))
         engine_path = convertor.load_model(
             onnx_model,
             None,
@@ -61,10 +61,11 @@ class TestModelConvertor(unittest.TestCase):
             explicit_batch=True,
             precision='int8',
             verbosity=verbosity,
-            max_calibration_size=300,
+            max_calibration_size=500,
             calibration_batch_size=32,
-            calibration_data=os.path.join(dir_path, "data/images/imagenet100"),
-            preprocess_func='preprocess_imagenet',
+            calibration_data='/home/jliu/data/coco/images/val2017/',
+            preprocess_func='preprocess_coco_mmdet_ssd',
+            cali_input_shape=(512, 512),
             save_cache_if_exists=True
         )
     
@@ -72,14 +73,13 @@ class TestModelConvertor(unittest.TestCase):
         bsize = 1
         convertor = ModelConvertor()
         img_readpath = '/home/jliu/data/coco/images/val2017/'
-        img_savepath = os.path.join(dir_path, 'data/images/test_mmdet_ssd/')
+        img_savepath = os.path.join(dir_path, 'data/images/test_mmdet_ssd')
         # laod tensorRT model
         for trt_model_path in [ \
             "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000_fp32_bsize1.trt", \
             "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000_fp16_bsize1.trt", \
             "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000_int8nocalibytrtexec_bsize1.trt", \
-            "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000_int8oldcali_bsize1.trt", \
-            "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000_int8simplecali_bsize1.trt", \
+            "/home/jliu/data/models/ssd512_coco_shape512x512_trtnms_topk1000_int8cali_cocoval_calisize512_n500_precoco_bsize1.trt",
         ]:
             convertor.load_model(trt_model_path, dummy_input=None, onnx_model_path=None, engine_path=None)
 
@@ -98,7 +98,7 @@ class TestModelConvertor(unittest.TestCase):
                     'input_path': single_image_path,
                     'normalize_cfg': {
                         'mean': (123.675, 116.28, 103.53),
-                        'std': (58.395, 57.12, 57.375)
+                        'std': (1, 1, 1)
                         }
                         }
                 one_img, one_meta = img_helper.preprocess_example_input(input_config)
@@ -169,14 +169,55 @@ class TestModelConvertor(unittest.TestCase):
         # predict
         out = convertor.predict([boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold])
         print(out)
-    
+
+
+    def test_fp32_mmdet_yolov3(self):
+        bsize = 8
+        convertor = ModelConvertor()
+        # convert onnx model to tensorRT model
+        onnx_model = "/workspace/jupdate.onnx"
+        prefix_model= os.path.split(onnx_model)[-1].split('.')[0]
+        trt_model_path = os.path.join(dir_path, "data/models/{}_fp32_bsize{}.trt".format(prefix_model, bsize))
+        engine_path = convertor.load_model(
+            onnx_model,
+            None,
+            onnx_model_path=None,
+            engine_path=trt_model_path,
+            explicit_batch=True,
+            precision='fp32',
+            verbosity=verbosity
+        )
+
+    def test_int8_mmdet_yolov3(self):
+        bsize = 8
+        convertor = ModelConvertor()
+        # convert onnx model to tensorRT model
+        onnx_model = "/workspace/jupdate.onnx"
+        prefix_model= os.path.split(onnx_model)[-1].split('.')[0]
+        trt_model_path = os.path.join(dir_path, "data/models/{}_int8cali_cocoval_calisize320_n500_preyolov3_bsize{}.trt".format(prefix_model, bsize))
+        engine_path = convertor.load_model(
+            onnx_model,
+            None,
+            onnx_model_path=None,
+            engine_path=trt_model_path,
+            explicit_batch=True,
+            precision='int8',
+            verbosity=verbosity,
+            max_calibration_size=500,
+            calibration_batch_size=32,
+            calibration_data='/home/jliu/data/coco/images/val2017/',
+            preprocess_func='preprocess_coco_mmdet_yolov3',
+            cali_input_shape=(320, 320),
+            save_cache_if_exists=True
+        )        
+
 
 if __name__ == '__main__':
     # TestModelConvertor().test_fp32_mmdet_SSD()
     # TestModelConvertor().test_fp16_mmdet_SSD()
-    # TestModelConvertor().test_int8_mmdet_SSD()
-    TestModelConvertor().test_mmdet_SSD_loadtrt() 
-    # TestModelConvertor().test_onlynms_convert()
-    # TestModelConvertor().test_onlynms_predict()
+    TestModelConvertor().test_int8_mmdet_SSD()
+    # TestModelConvertor().test_mmdet_SSD_loadtrt() 
     # TestModelConvertor().test_onlynms_convert() # not OK yet
     # TestModelConvertor().test_onlynms_predict() # not OK yet
+    # TestModelConvertor().test_fp32_mmdet_yolov3()
+    # TestModelConvertor().test_int8_mmdet_yolov3()
