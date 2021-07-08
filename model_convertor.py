@@ -144,7 +144,7 @@ class ModelConvertor(object):
             return None
 
          # trt engine path
-        if isinstance(modelOrPath, str) and len(modelOrPath.split('.'))>1 and modelOrPath.split('.')[-1] == 'trt':
+        if isinstance(modelOrPath, str) and len(modelOrPath.split('.'))>1 and (modelOrPath.split('.')[-1] in ['trt', 'plan']):
             self.engine_path = modelOrPath
         else:
             # onnx_model_path
