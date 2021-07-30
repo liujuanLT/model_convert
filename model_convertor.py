@@ -13,6 +13,20 @@ from onnx_to_tensorrt_api import onnx_to_tensorrt
 
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
 
+def numpy_dtype_from_trt(dtype):
+    if dtype == trt.bool:
+        return bool
+    elif dtype == trt.int8:
+        return np.int8
+    elif dtype == trt.int32:
+        return np.int32
+    elif dtype == trt.float16:
+        return np.float16
+    elif dtype == trt.float32:
+        return np.float32
+    else:
+        raise TypeError('%s is not supported by torch' % dtype)
+
 def load_engine(filename: str):
     # Load serialized engine file into memory
     with open(filename, "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
@@ -67,7 +81,8 @@ def setup_binding_shapes(
     for bind_idx in out_bind_idxs:
         out_shape = ctx.get_binding_shape(bind_idx)
         # Allocate buffers to hold output results after copying back to host
-        buf = np.empty(out_shape, dtype=np.float32)
+        dtype=numpy_dtype_from_trt(ctx.get_binding_dtype(bind_idx))
+        buf = np.empty(out_shape, dtype=dtype)
         h_outputs.append(buf)
         # Allocate output buffers on device
         d_outputs.append(cuda.mem_alloc(buf.nbytes))
